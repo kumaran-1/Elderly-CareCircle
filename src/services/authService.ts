@@ -5,7 +5,10 @@ import type { Request, Response, NextFunction } from "express";
 import { config } from "../config";
 import type { AuthContext, AuthTokens, Role, SystemStore, User } from "../domain/types";
 import type { NotificationService } from "./notificationService";
-
+export type PublicUser = Omit<
+  User,
+  "passwordHash" | "otpCode" | "otpExpiresAt"
+>;
 export interface RegisterInput {
   name: string;
   email: string;
@@ -143,6 +146,46 @@ export class AuthService {
   getUserByEmail(email: string): User | undefined {
     return this.store.users.find((user) => user.email === email.toLowerCase());
   }
+  async updateProfile(
+  userId: string,
+  updates: { name?: string; profile?: User["profile"] }
+): Promise<Omit<User, "passwordHash" | "otpCode" | "otpExpiresAt">> {
+  const user = this.getUserById(userId);
+
+  if (!user) {
+    throw new Error("User not found.");
+  }
+
+  if (updates.name !== undefined) {
+    user.name = updates.name;
+  }
+
+  if (updates.profile !== undefined) {
+    user.profile = { ...user.profile, ...updates.profile };
+  }
+
+  this.onChange();
+  return this.publicUser(user);
+}
+async changePassword(
+  userId: string,
+  currentPassword: string,
+  newPassword: string
+): Promise<void> {
+  const user = this.getUserById(userId);
+
+  if (!user) {
+    throw new Error("User not found.");
+  }
+
+  if (!bcrypt.compareSync(currentPassword, user.passwordHash)) {
+    throw new Error("Current password is incorrect.");
+  }
+
+  user.passwordHash = bcrypt.hashSync(newPassword, 10);
+  user.refreshTokenVersion += 1;
+  this.onChange();
+}
 
   refresh(userId: string): AuthTokens {
     const user = this.getUserById(userId);

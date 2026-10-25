@@ -11,7 +11,7 @@ function resolveElderId(req: Request): string | undefined {
     return query;
   }
   if (req.params.elderId) {
-    return req.params.elderId;
+    return String(req.params.elderId);
   }
   if (req.body && typeof req.body.elderId === "string") {
     return req.body.elderId;

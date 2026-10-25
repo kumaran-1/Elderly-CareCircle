@@ -17,10 +17,10 @@ export function fileRoutes(ctx: RouteContext): Router {
     }
   });
 
-  router.get("/", requireAuth, (req, res, next) => {
-    try {
-      res.json({ files: fileStorage.listFiles(req.auth!.userId, req.auth!.role) });
-    } catch (error) {
+router.get("/", requireAuth, async (req, res, next) => {    try {
+res.json({
+  files: await fileStorage.listFilesAsync(req.auth!.userId, req.auth!.role)
+});    } catch (error) {
       next(error);
     }
   });

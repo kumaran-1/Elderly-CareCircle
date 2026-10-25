@@ -28,8 +28,7 @@ export function medicationRoutes(ctx: RouteContext): Router {
         status: req.body.status,
         dueAt: req.body.dueAt
       });
-      res.status(result.duplicate ? 200 : 201).json(result);
-    } catch (error) {
+res.status(201).json(result);    } catch (error) {
       next(error);
     }
   });

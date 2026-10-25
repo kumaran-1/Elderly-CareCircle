@@ -77,8 +77,7 @@ async function main() {
     loggedByUserId: "user-elder-1",
     amountMl: 250
   });
-  assert.equal(hydration.amountMl, 250);
-
+assert.equal(hydration.log.amountMl, 250);
   const sosEvent = sos.create({
     elderId: "user-elder-1",
     triggeredByUserId: "user-elder-1",

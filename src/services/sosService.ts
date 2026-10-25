@@ -85,4 +85,13 @@ export class SosService {
   getActiveForElder(elderId: string): SosEvent[] {
     return this.store.sosEvents.filter((event) => event.elderId === elderId && event.status === "active");
   }
+  getAllEvents(): SosEvent[] {
+  return this.store.sosEvents;
+}
+
+getEvent(eventId: string): SosEvent | undefined {
+  return this.store.sosEvents.find(
+    (event) => event.id === eventId
+  );
+}
 }

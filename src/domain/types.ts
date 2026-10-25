@@ -1,5 +1,17 @@
 export type Role = "elder" | "family" | "caregiver" | "admin";
+export type InstructionPriority = "low" | "medium" | "high" | "urgent";
 
+export interface CareInstruction {
+  id: string;
+  elderId: string;
+  caregiverId: string;
+  title: string;
+  message: string;
+  priority: InstructionPriority;
+  category: string;
+  scheduledAt?: string;
+  createdAt: string;
+}
 export type NotificationCategory =
   | "otp"
   | "medication"
@@ -9,7 +21,8 @@ export type NotificationCategory =
   | "appointment"
   | "ai"
   | "sos"
-  | "system";
+  | "system"
+  | "careInstruction";
 
 export interface Profile {
   dateOfBirth?: string;
@@ -196,6 +209,7 @@ export interface DashboardPayload {
 export interface SystemStore {
   users: User[];
   careCircles: CareCircle[];
+  careInstructions: CareInstruction[];
   vitals: VitalReading[];
   medicationPlans: MedicationPlan[];
   medicationLogs: MedicationLog[];

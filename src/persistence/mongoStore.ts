@@ -53,6 +53,7 @@ function mergeStore(base: SystemStore, incoming: Partial<SystemStore>): SystemSt
   return {
     users,
     careCircles: incoming.careCircles ?? base.careCircles,
+    careInstructions: incoming.careInstructions ?? base.careInstructions,
     vitals: incoming.vitals ?? base.vitals,
     medicationPlans: incoming.medicationPlans ?? base.medicationPlans,
     medicationLogs: incoming.medicationLogs ?? base.medicationLogs,

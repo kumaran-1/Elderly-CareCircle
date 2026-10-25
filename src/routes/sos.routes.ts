@@ -34,6 +34,9 @@ export function sosRoutes(ctx: RouteContext): Router {
   router.post("/:id/acknowledge", requireAuth, (req, res, next) => {
     try {
       const event = sos.getEvent(req.params.id);
+      if (!event) {
+  return res.status(404).json({ message: "SOS event not found." });
+}
       if (!circles.userHasAccessToElder(req.auth!.userId, event.elderId)) {
         res.status(403).json({ message: "You do not have access to this SOS event." });
         return;
@@ -47,6 +50,9 @@ export function sosRoutes(ctx: RouteContext): Router {
   router.post("/:id/resolve", requireAuth, (req, res, next) => {
     try {
       const event = sos.getEvent(req.params.id);
+      if (!event) {
+  return res.status(404).json({ message: "SOS event not found." });
+}
       if (!circles.userHasAccessToElder(req.auth!.userId, event.elderId)) {
         res.status(403).json({ message: "You do not have access to this SOS event." });
         return;

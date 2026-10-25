@@ -21,12 +21,8 @@ export function authRoutes(ctx: RouteContext): Router {
 
   router.post("/register", validate(registerSchema), async (req, res, next) => {
     try {
-      const { user, tokens } = await auth.register(req.body);
-      res.status(201).json({
-        message: "Account created successfully.",
-        user,
-        tokens
-      });
+      const { user, otpCode } = auth.register(req.body);
+      res.status(201).json({ user, otpCode });
     } catch (error) {
       next(error);
     }
@@ -70,8 +66,8 @@ export function authRoutes(ctx: RouteContext): Router {
 
   router.post("/logout", requireAuth, async (req, res, next) => {
     try {
-      await auth.logout(req.auth!.userId);
-      res.json({ message: "Logged out successfully." });
+      auth.refresh(req.auth!.userId);
+res.json({ message: "Logged out successfully." });
     } catch (error) {
       next(error);
     }

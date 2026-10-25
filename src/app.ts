@@ -438,10 +438,19 @@ export function createApp(store: SystemStore, services: Services, options: AppOp
       }
 
       if (req.auth!.role !== "admin" && req.auth!.userId !== target.elderId && !services.circles.userHasAccessToElder(req.auth!.userId, target.elderId)) {
-        services.circles.acceptInvitation(payload.inviteCode, req.auth!.userId, payload.relation);
+        services.circles.acceptInvitation(
+  payload.inviteCode,
+  req.auth!.userId,
+  req.auth!.email,
+  payload.relation
+);
       } else {
-        services.circles.acceptInvitation(payload.inviteCode, req.auth!.userId, payload.relation);
-      }
+services.circles.acceptInvitation(
+  payload.inviteCode,
+  req.auth!.userId,
+  req.auth!.email,
+  payload.relation
+);      }
 
       res.json({ circle: services.circles.getCircle(target.id) });
     } catch (error) {
@@ -624,8 +633,10 @@ export function createApp(store: SystemStore, services: Services, options: AppOp
 
     const payload = uploadSchema.parse(req.body);
     try {
-      const saved = await fileStorage.saveFile(payload);
-      store.files.push(saved);
+const saved = await fileStorage.saveFile({
+  ...payload,
+  uploadedByUserId: req.auth!.userId
+});      store.files.push(saved);
       options.onChange?.();
       services.notifications.create({
         userId: req.auth!.userId,

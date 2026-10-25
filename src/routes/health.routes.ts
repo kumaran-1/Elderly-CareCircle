@@ -13,8 +13,10 @@ export function healthRoutes(ctx: RouteContext): Router {
   router.post("/vitals", requireAuth, validate(vitalSchema), requireElderAccess, (req, res, next) => {
     try {
       const result = health.logVital({ ...req.body, loggedByUserId: req.auth!.userId });
-      res.status(201).json({ reading: result.reading, alerted: result.alerted, deduplicated: result.deduplicated });
-    } catch (error) {
+res.status(201).json({
+  reading: result.reading,
+  alerted: result.alerted
+});    } catch (error) {
       next(error);
     }
   });

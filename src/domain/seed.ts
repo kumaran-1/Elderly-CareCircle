@@ -19,7 +19,8 @@ import type {
 const now = new Date();
 const minutes = (value: number) => value * 60 * 1000;
 
-const hash = (value: string) => bcrypt.hashSync(value, 10);
+const hash = (value: string | undefined) =>
+  bcrypt.hashSync(value ?? "CareCircleDemo123", 10);
 
 const makeUser = (input: Omit<User, "refreshTokenVersion" | "createdAt" | "fcmTokens"> & { fcmTokens?: string[] }): User => ({
   ...input,
@@ -35,8 +36,7 @@ export const createSeedStore = (): SystemStore => {
     id: "user-elder-1",
     name: "Rajendran",
     email: "rajendran@example.com",
-    passwordHash: hash(config.demoPassword),
-    role: "elder",
+passwordHash: hash(config.demoPassword ?? "CareCircleDemo123"),    role: "elder",
     verified: true,
     profile: {
       dateOfBirth: "1948-04-12",
@@ -50,8 +50,7 @@ export const createSeedStore = (): SystemStore => {
     id: "user-family-1",
     name: "Asha",
     email: "asha@example.com",
-    passwordHash: hash(config.demoPassword),
-    role: "family",
+passwordHash: hash(config.demoPassword ?? "CareCircleDemo123"),    role: "family",
     verified: true,
     profile: { contactNumber: "+91-90000-00002" }
   });
@@ -60,8 +59,7 @@ export const createSeedStore = (): SystemStore => {
     id: "user-caregiver-1",
     name: "Suresh",
     email: "suresh@example.com",
-    passwordHash: hash(config.demoPassword),
-    role: "caregiver",
+passwordHash: hash(config.demoPassword ?? "CareCircleDemo123"),    role: "caregiver",
     verified: true,
     profile: { contactNumber: "+91-90000-00003" }
   });

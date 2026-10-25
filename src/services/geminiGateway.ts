@@ -2,7 +2,9 @@ export interface AiGatewayResponse {
   text: string;
   provider: "local" | "gemini" | "remote";
 }
-
+export interface AiGateway {
+  generate(prompt: string): Promise<AiGatewayResponse>;
+}
 export class GeminiGateway {
   constructor(
     private readonly endpoint?: string,
