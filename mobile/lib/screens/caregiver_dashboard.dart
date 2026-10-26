@@ -5,6 +5,7 @@ import '../responsive.dart';
 import '../theme.dart';
 import '../widgets/cc_components.dart';
 import 'accept_invitation_screen.dart';
+import 'care_plan_screen.dart';
 import 'elder_medical_records_screen.dart';
 
 class CaregiverDashboard extends StatefulWidget {
@@ -207,7 +208,7 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
 
     if (elderIds.isEmpty) {
       return [
-        CCEmpty(icon: Icons.people_outline, message: 'No clients assigned.'),
+        const CCEmpty(icon: Icons.people_outline, message: 'No clients assigned.'),
       ];
     }
 
@@ -244,7 +245,7 @@ class _CaregiverDashboardState extends State<CaregiverDashboard> {
                       children: [
                         Text(name, style: const TextStyle(fontSize: AppTheme.fontSizeXl, fontWeight: FontWeight.w800, color: AppTheme.ink)),
                         const SizedBox(height: AppTheme.spacingXs),
-                        Text(
+                        const Text(
                           "Tap to view today's tasks",
                           style: TextStyle(color: AppTheme.muted, fontSize: AppTheme.fontSizeMd),
                         ),
@@ -341,6 +342,8 @@ class _ClientTasksScreenState extends State<_ClientTasksScreen> {
                     padding: const EdgeInsets.all(18),
                     children: [
                       _buildMedicalRecordsButton(),
+                      const SizedBox(height: AppTheme.spacingMd),
+                      _buildCarePlanButton(),
                       const SizedBox(height: AppTheme.spacingLg),
                       _buildVitalsTask(),
                       const SizedBox(height: AppTheme.spacingLg),
@@ -376,6 +379,31 @@ class _ClientTasksScreenState extends State<_ClientTasksScreen> {
         ),
         icon: const Icon(Icons.folder_open),
         label: const Text('Medical Records & Instructions', style: TextStyle(fontSize: AppTheme.fontSizeLg, fontWeight: FontWeight.w700)),
+      ),
+    );
+  }
+
+  Widget _buildCarePlanButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: FilledButton.icon(
+        onPressed: () {
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => CarePlanScreen(
+              apiClient: widget.apiClient,
+              elderId: widget.elderId,
+              elderName: widget.elderName,
+            ),
+          ));
+        },
+        style: FilledButton.styleFrom(
+          backgroundColor: AppTheme.coral,
+          foregroundColor: AppTheme.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusLarge)),
+        ),
+        icon: const Icon(Icons.assignment_turned_in),
+        label: const Text('Care Tasks & Handover', style: TextStyle(fontSize: AppTheme.fontSizeLg, fontWeight: FontWeight.w700)),
       ),
     );
   }
@@ -493,7 +521,7 @@ class _ClientTasksScreenState extends State<_ClientTasksScreen> {
 
   Widget _buildHydrationTask() {
     final totalMl = _hydration?['totalMl'] ?? 0;
-    final targetMl = _hydration?['targetMl'] ?? 2000;
+    final targetMl = _hydration?['goalMl'] ?? 2000;
     final progress = targetMl > 0 ? (totalMl / targetMl * 100).clamp(0, 100).toInt() : 0;
 
     return SectionCard(

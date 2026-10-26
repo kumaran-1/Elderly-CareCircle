@@ -2,19 +2,19 @@
 
 CareCircle is an elderly-care workflow backend that models the documented flow for authentication, role-based dashboards, care circles, health activity logging, notifications, AI safety checks, SOS escalation, and reporting.
 
-The repository also includes a Flutter client scaffold under [mobile](mobile) for the role-based mobile experience.
+The repository also includes a Flutter client under [mobile](mobile) for the role-based mobile experience.
 
 This workspace contains a practical TypeScript/Express MVP with:
 
 - Email/password + JWT authentication
-- Elder, Family Member, Caregiver, and Admin roles
+- Elder, Family Member, and Caregiver roles
 - Care circle membership and invite flow
-- Vitals, medication, hydration, exercise, and appointment APIs
+- Vitals, medication, hydration, exercise, and appointment APIs, including follow-up scheduling
+- Shared care tasks, care notes, and shift handovers
 - Event-driven notifications
 - Safe AI assistant routing with emergency detection
 - SOS creation, acknowledgement, and resolution
 - Weekly and monthly report summaries
-- Admin analytics that stay at the aggregate level
 
 ## Run locally
 
@@ -23,7 +23,7 @@ This workspace contains a practical TypeScript/Express MVP with:
 3. Use the seeded demo accounts or register a new account.
 4. Run the smoke test with `npm run test`.
 
-`npm run test` runs both the service-level workflow test and the HTTP API test, including JWT/OTP login, refresh, alerting, and admin privacy enforcement.
+`npm run test` runs both the service-level workflow test and the HTTP API test, including JWT/OTP login, refresh, alerting, care-plan workflows, and legacy admin blocking.
 
 ## Container deployment
 
@@ -50,7 +50,6 @@ The seed data includes verified sample users for:
 - Elder: Rajendran
 - Family: Asha
 - Caregiver: Suresh
-- Admin: Admin User
 
 The default demo password is `Password123!`.
 
@@ -61,21 +60,36 @@ The default demo password is `Password123!`.
 - `POST /auth/verify-otp` (legacy registration verification)
 - `POST /auth/refresh`
 - `GET /me`
+- `PUT /me`
+- `PUT /me/password`
 - `GET /dashboard`
 - `POST /care-circles`
 - `POST /care-circles/:id/invite`
-- `POST /care-circles/:id/accept`
+- `POST /care-circles/accept`
 - `GET /care-circles/me`
+- `DELETE /care-circles/:id/members/:userId`
 - `POST /health/vitals`
 - `GET /health/vitals/:elderId`
 - `POST /medications`
 - `POST /medications/:id/logs`
+- `GET /medications/summary/:elderId`
 - `POST /hydration/logs`
 - `POST /exercise/logs`
 - `POST /appointments`
+- `PATCH /appointments/:id`
+- `POST /appointments/:id/cancel`
+- `POST /care-instructions`
+- `GET /care-instructions/:elderId`
+- `POST /care-tasks`
+- `GET /care-tasks/elder/:elderId`
+- `PATCH /care-tasks/:id`
+- `POST /care-notes`
+- `GET /care-notes/elder/:elderId`
 - `POST /ai/chat`
+- `GET /ai/conversations`
 - `POST /files/upload`
 - `GET /files`
+- `GET /sos`
 - `POST /sos`
 - `POST /sos/:id/acknowledge`
 - `POST /sos/:id/resolve`
@@ -83,7 +97,6 @@ The default demo password is `Password123!`.
 - `GET /reports/summary/:elderId/pdf`
 - `GET /notifications`
 - `POST /notifications/device`
-- `GET /admin/analytics`
 
 ## Notes
 
@@ -93,4 +106,4 @@ The default demo password is `Password123!`.
 - FCM delivery is enabled when `FIREBASE_SERVICE_ACCOUNT_JSON` and a device token are configured.
 - File uploads are stored locally in `data/files/` through a cloud-storage-style adapter.
 - The services are separated so the persistence layer can be swapped for MongoDB/Mongoose later with minimal change.
-- Public registration cannot create admin accounts; administrators must be provisioned separately.
+- Public registration cannot create admin accounts. Legacy admin records are blocked from authentication and private data access.

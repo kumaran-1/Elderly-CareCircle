@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.loginBuilder});
+  const HomeScreen({super.key, required this.loginBuilder, this.errorMessage});
 
   final WidgetBuilder loginBuilder;
+  final String? errorMessage;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -35,25 +36,63 @@ class _HomeScreenState extends State<HomeScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
                 children: [
-                  const Text('CareCircle', style: TextStyle(color: AppTheme.ink, fontSize: 38, fontWeight: FontWeight.w900)),
+                  const Text('CareCircle',
+                      style: TextStyle(
+                          color: AppTheme.ink,
+                          fontSize: 38,
+                          fontWeight: FontWeight.w900)),
                   const SizedBox(height: 6),
-                  const Text('Care that stays connected.', style: TextStyle(color: AppTheme.muted, fontSize: 19)),
+                  const Text('Care that stays connected.',
+                      style: TextStyle(color: AppTheme.muted, fontSize: 19)),
+                  if (widget.errorMessage != null) ...[
+                    const SizedBox(height: 18),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppTheme.warning.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                            color: AppTheme.warning.withValues(alpha: 0.5)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.info_outline,
+                              color: AppTheme.warning),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              widget.errorMessage!,
+                              style: const TextStyle(
+                                  color: AppTheme.ink, fontSize: 15),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 30),
-                  const Text('Choose your view', style: TextStyle(color: AppTheme.ink, fontSize: 24, fontWeight: FontWeight.w800)),
+                  const Text('Choose your view',
+                      style: TextStyle(
+                          color: AppTheme.ink,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800)),
                   const SizedBox(height: 12),
                   GridView.count(
-                    crossAxisCount: isWide ? 4 : 2,
+                    crossAxisCount: isWide ? 3 : 2,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
                     childAspectRatio: isWide ? 1.55 : 1.3,
-                    children: _roles.map((item) => _RoleCard(
-                          label: item,
-                          selected: selectedRole == item,
-                          details: _roleDetails(item),
-                          onTap: () => setState(() => selectedRole = item),
-                        )).toList(),
+                    children: _roles
+                        .map((item) => _RoleCard(
+                              label: item,
+                              selected: selectedRole == item,
+                              details: _roleDetails(item),
+                              onTap: () => setState(() => selectedRole = item),
+                            ))
+                        .toList(),
                   ),
                   const SizedBox(height: 20),
                   Container(
@@ -61,7 +100,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.88),
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: role.color.withValues(alpha: 0.7), width: 1.5),
+                      border: Border.all(
+                          color: role.color.withValues(alpha: 0.7), width: 1.5),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,19 +110,33 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             Icon(role.icon, color: role.color, size: 30),
                             const SizedBox(width: 12),
-                            Expanded(child: Text(role.title, style: const TextStyle(color: AppTheme.ink, fontSize: 23, fontWeight: FontWeight.w800))),
+                            Expanded(
+                                child: Text(role.title,
+                                    style: const TextStyle(
+                                        color: AppTheme.ink,
+                                        fontSize: 23,
+                                        fontWeight: FontWeight.w800))),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        Text(role.description, style: const TextStyle(color: AppTheme.muted, fontSize: 16, height: 1.4)),
+                        Text(role.description,
+                            style: const TextStyle(
+                                color: AppTheme.muted,
+                                fontSize: 16,
+                                height: 1.4)),
                         const SizedBox(height: 16),
                         ...role.priorities.map((item) => Padding(
                               padding: const EdgeInsets.only(bottom: 9),
                               child: Row(
                                 children: [
-                                  Icon(Icons.check_circle, color: role.color, size: 20),
+                                  Icon(Icons.check_circle,
+                                      color: role.color, size: 20),
                                   const SizedBox(width: 10),
-                                  Expanded(child: Text(item, style: const TextStyle(color: AppTheme.ink, fontSize: 16))),
+                                  Expanded(
+                                      child: Text(item,
+                                          style: const TextStyle(
+                                              color: AppTheme.ink,
+                                              fontSize: 16))),
                                 ],
                               ),
                             )),
@@ -93,19 +147,26 @@ class _HomeScreenState extends State<HomeScreen> {
                   SizedBox(
                     height: 58,
                     child: FilledButton.icon(
-                      onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: widget.loginBuilder)),
+                      onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                              builder: widget.loginBuilder)),
                       icon: const Icon(Icons.arrow_forward),
                       label: Text('Continue as $selectedRole'),
                       style: FilledButton.styleFrom(
                         backgroundColor: role.color,
                         foregroundColor: Colors.white,
-                        textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                        textStyle: const TextStyle(
+                            fontSize: 17, fontWeight: FontWeight.w800),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18)),
                       ),
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const Text('Your health information is shared only with your CareCircle.', textAlign: TextAlign.center, style: TextStyle(color: AppTheme.muted)),
+                  const Text(
+                      'Your health information is shared only with your CareCircle.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppTheme.muted)),
                 ],
               ),
             ),
@@ -116,10 +177,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-const _roles = ['Elder', 'Family', 'Caregiver', 'Admin'];
+const _roles = ['Elder', 'Family', 'Caregiver'];
 
 class _RoleCard extends StatelessWidget {
-  const _RoleCard({required this.label, required this.selected, required this.details, required this.onTap});
+  const _RoleCard(
+      {required this.label,
+      required this.selected,
+      required this.details,
+      required this.onTap});
 
   final String label;
   final bool selected;
@@ -138,16 +203,24 @@ class _RoleCard extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: selected ? details.color.withValues(alpha: 0.16) : Colors.white.withValues(alpha: 0.78),
+            color: selected
+                ? details.color.withValues(alpha: 0.16)
+                : Colors.white.withValues(alpha: 0.78),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: selected ? details.color : Color(0xFFD7E3DD), width: selected ? 2 : 1),
+            border: Border.all(
+                color: selected ? details.color : const Color(0xFFD7E3DD),
+                width: selected ? 2 : 1),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(details.icon, color: selected ? details.color : AppTheme.muted, size: 30),
+              Icon(details.icon,
+                  color: selected ? details.color : AppTheme.muted, size: 30),
               const SizedBox(height: 8),
-              Text(label, style: TextStyle(color: selected ? AppTheme.ink : AppTheme.muted, fontWeight: FontWeight.w800)),
+              Text(label,
+                  style: TextStyle(
+                      color: selected ? AppTheme.ink : AppTheme.muted,
+                      fontWeight: FontWeight.w800)),
             ],
           ),
         ),
@@ -157,7 +230,12 @@ class _RoleCard extends StatelessWidget {
 }
 
 class _RoleDetails {
-  const _RoleDetails({required this.title, required this.description, required this.priorities, required this.icon, required this.color});
+  const _RoleDetails(
+      {required this.title,
+      required this.description,
+      required this.priorities,
+      required this.icon,
+      required this.color});
 
   final String title;
   final String description;
@@ -172,31 +250,36 @@ _RoleDetails _roleDetails(String role) {
       return const _RoleDetails(
         title: 'Stay close, even from far away.',
         description: 'Follow linked elders, alerts, reports, and care updates.',
-        priorities: ['View linked elder status', 'Review important alerts', 'Open health reports'],
+        priorities: [
+          'View linked elder status',
+          'Review important alerts',
+          'Open health reports'
+        ],
         icon: Icons.family_restroom,
         color: AppTheme.warning,
       );
     case 'Caregiver':
       return const _RoleDetails(
         title: 'Every task, in one place.',
-        description: 'Move through client tasks quickly and record care accurately.',
-        priorities: ['Choose a client', 'Complete today\'s tasks', 'Keep the CareCircle updated'],
+        description:
+            'Move through client tasks quickly and record care accurately.',
+        priorities: [
+          'Choose a client',
+          'Complete today\'s tasks',
+          'Keep the CareCircle updated'
+        ],
         icon: Icons.medical_services,
         color: Color(0xFF7DD3FC),
-      );
-    case 'Admin':
-      return const _RoleDetails(
-        title: 'Clear oversight, protected privacy.',
-        description: 'Monitor platform operations without accessing private health details.',
-        priorities: ['Review platform activity', 'Manage accounts', 'Protect elder privacy'],
-        icon: Icons.admin_panel_settings,
-        color: Color(0xFFC4B5FD),
       );
     default:
       return const _RoleDetails(
         title: 'Your daily care, made simple.',
         description: 'See what matters today with clear, comfortable controls.',
-        priorities: ['Log a health reading', 'Check medication', 'Get help quickly with SOS'],
+        priorities: [
+          'Log a health reading',
+          'Check medication',
+          'Get help quickly with SOS'
+        ],
         icon: Icons.elderly,
         color: AppTheme.accent,
       );

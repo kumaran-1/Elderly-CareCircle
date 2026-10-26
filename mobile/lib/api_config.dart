@@ -3,7 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Development fallback. Never used in release builds without explicit
 /// configuration (see [resolveApiBaseUrl]).
-const String _devDefaultBaseUrl = 'http://10.82.148.125:4000';
+const String _devDefaultBaseUrl = 'https://carecircle-api-l8pk.onrender.com';
 
 const String _overrideKey = 'carecircle_api_base_url';
 
@@ -28,7 +28,7 @@ String validateApiBaseUrl(String url, {bool isRelease = kReleaseMode}) {
 /// Resolves the API base URL with the following precedence:
 /// 1. compile-time `--dart-define=CARECIRCLE_API_BASE_URL`
 /// 2. runtime override saved in secure storage (editable in Profile)
-/// 3. development LAN default (debug builds only)
+/// 3. the deployed CareCircle API default (debug builds only)
 ///
 /// Throws [StateError] in release builds when nothing is configured,
 /// instead of silently pointing at a development machine.

@@ -124,7 +124,7 @@ export class CareCircleService {
 
   isCircleManager(circleId: string, userId: string): boolean {
     const circle = this.getCircle(circleId);
-    return circle.elderId === userId && circle.createdByUserId === userId;
+    return circle.elderId === userId;
   }
 
   removeMember(circleId: string, userId: string): CareCircle {

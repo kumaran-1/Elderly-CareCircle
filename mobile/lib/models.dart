@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum RoleType { elder, family, caregiver, admin }
+enum RoleType { elder, family, caregiver }
 
 class FlowStep {
   final String title;

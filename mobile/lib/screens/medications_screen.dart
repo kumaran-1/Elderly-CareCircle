@@ -141,7 +141,7 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
     final plans = (_data?['plans'] as List<dynamic>? ?? const []).cast<Map<String, dynamic>>();
     if (plans.isEmpty) {
       return [
-        CCEmpty(icon: Icons.medication, message: 'No medication plans.'),
+        const CCEmpty(icon: Icons.medication, message: 'No medication plans.'),
       ];
     }
     return plans.map((plan) => Container(
@@ -196,7 +196,7 @@ class _MedicationsScreenState extends State<MedicationsScreen> {
     final logs = (_data?['logs'] as List<dynamic>? ?? const []).cast<Map<String, dynamic>>();
     if (logs.isEmpty) {
       return [
-        CCEmpty(icon: Icons.receipt_long, message: 'No medication logs yet.'),
+        const CCEmpty(icon: Icons.receipt_long, message: 'No medication logs yet.'),
       ];
     }
     return logs.reversed.take(10).map((log) {

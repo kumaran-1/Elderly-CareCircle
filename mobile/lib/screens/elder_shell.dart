@@ -5,6 +5,7 @@ import '../theme.dart';
 import '../widgets/cc_components.dart';
 import 'ai_chat_screen.dart';
 import 'care_circle_screen.dart';
+import 'care_plan_screen.dart';
 import 'elder_home_screen.dart';
 import 'exercise_screen.dart';
 import 'hydration_screen.dart';
@@ -69,6 +70,7 @@ class _ElderShellState extends State<ElderShell> {
         onViewProfile: () => setState(() => _currentIndex = 5),
         onViewHydration: _openHydration,
         onViewExercise: _openExercise,
+        onOpenCarePlan: _openCarePlan,
       ),
       VitalsScreen(apiClient: widget.apiClient, elderId: elderId),
       MedicationsScreen(apiClient: widget.apiClient, elderId: elderId),
@@ -93,6 +95,18 @@ class _ElderShellState extends State<ElderShell> {
   void _openExercise() {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => ExerciseScreen(apiClient: widget.apiClient, elderId: _elderId ?? ''),
+    ));
+  }
+
+  void _openCarePlan() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => CarePlanScreen(
+        apiClient: widget.apiClient,
+        elderId: _elderId ?? '',
+        elderName: _userName ?? '',
+        canManage: false,
+        showJournal: false,
+      ),
     ));
   }
 
@@ -289,7 +303,7 @@ class _ElderSosScreenState extends State<_ElderSosScreen> {
               ] else ...[
                 Container(
                   padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: AppTheme.sosRedLight,
                     shape: BoxShape.circle,
                   ),

@@ -24,7 +24,7 @@ void main() {
     test('uses the development default in debug builds only', () {
       expect(
         resolveApiBaseUrl(buildTimeUrl: '', storedOverride: null, isRelease: false),
-        'http://10.107.221.125:4000',
+        'https://carecircle-api-l8pk.onrender.com',
       );
       expect(
         () => resolveApiBaseUrl(buildTimeUrl: '   ', storedOverride: ' ', isRelease: true),

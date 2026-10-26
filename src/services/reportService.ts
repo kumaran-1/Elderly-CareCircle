@@ -11,7 +11,12 @@ export class ReportService {
     const medicationLogs = this.store.medicationLogs.filter((log) => log.elderId === elderId && new Date(log.loggedAt).getTime() >= cutoff);
     const hydrationLogs = this.store.hydrationLogs.filter((log) => log.elderId === elderId && new Date(log.createdAt).getTime() >= cutoff);
     const exerciseLogs = this.store.exerciseLogs.filter((log) => log.elderId === elderId && new Date(log.createdAt).getTime() >= cutoff);
-    const appointments = this.store.appointments.filter((appointment) => appointment.elderId === elderId && new Date(appointment.createdAt).getTime() >= cutoff);
+    const appointments = this.store.appointments.filter(
+      (appointment) =>
+        appointment.elderId === elderId &&
+        appointment.status !== "cancelled" &&
+        new Date(appointment.createdAt).getTime() >= cutoff
+    );
     const activeSosCount = this.store.sosEvents.filter((event) => event.elderId === elderId && event.status === "active").length;
 
     const medicationTaken = medicationLogs.filter((log) => log.status === "taken").length;

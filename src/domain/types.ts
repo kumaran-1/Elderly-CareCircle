@@ -22,7 +22,9 @@ export type NotificationCategory =
   | "ai"
   | "sos"
   | "system"
-  | "careInstruction";
+  | "careInstruction"
+  | "careTask"
+  | "careNote";
 
 export interface Profile {
   dateOfBirth?: string;
@@ -125,6 +127,40 @@ export interface ExerciseLog {
   createdAt: string;
 }
 
+export type CareTaskStatus = "pending" | "completed";
+export type CareTaskPriority = "low" | "medium" | "high";
+
+export interface CareTask {
+  id: string;
+  elderId: string;
+  createdByUserId: string;
+  assignedToUserId?: string;
+  title: string;
+  notes?: string;
+  dueAt?: string;
+  priority: CareTaskPriority;
+  status: CareTaskStatus;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export type CareNoteType = "note" | "handover";
+export type CareShift = "morning" | "afternoon" | "evening" | "night";
+
+export interface CareNote {
+  id: string;
+  elderId: string;
+  authorId: string;
+  type: CareNoteType;
+  title: string;
+  body: string;
+  shift?: CareShift;
+  createdAt: string;
+}
+
+export type AppointmentStatus = "scheduled" | "completed" | "cancelled";
+
 export interface Appointment {
   id: string;
   elderId: string;
@@ -133,8 +169,13 @@ export interface Appointment {
   specialty: string;
   dateTime: string;
   notes?: string;
+  status: AppointmentStatus;
+  cancelledAt?: string;
+  followUpNotes?: string;
+  followUpAt?: string;
   reminderTimes: string[];
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface Conversation {
@@ -216,6 +257,8 @@ export interface SystemStore {
   hydrationLogs: HydrationLog[];
   exerciseLogs: ExerciseLog[];
   appointments: Appointment[];
+  careTasks: CareTask[];
+  careNotes: CareNote[];
   conversations: Conversation[];
   notifications: Notification[];
   sosEvents: SosEvent[];

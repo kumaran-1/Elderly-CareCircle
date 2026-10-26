@@ -6,7 +6,7 @@ import '../theme.dart';
 import '../widgets/cc_components.dart';
 
 class ElderHomeScreen extends StatefulWidget {
-  const ElderHomeScreen({super.key, required this.apiClient, required this.userName, required this.onViewHealth, required this.onViewMedication, required this.onOpenAiChat, required this.onOpenSos, required this.onViewProfile, required this.onViewHydration, required this.onViewExercise});
+  const ElderHomeScreen({super.key, required this.apiClient, required this.userName, required this.onViewHealth, required this.onViewMedication, required this.onOpenAiChat, required this.onOpenSos, required this.onViewProfile, required this.onViewHydration, required this.onViewExercise, required this.onOpenCarePlan});
 
   final ApiClient apiClient;
   final String userName;
@@ -17,6 +17,7 @@ class ElderHomeScreen extends StatefulWidget {
   final VoidCallback onViewProfile;
   final VoidCallback onViewHydration;
   final VoidCallback onViewExercise;
+  final VoidCallback onOpenCarePlan;
 
   @override
   State<ElderHomeScreen> createState() => _ElderHomeScreenState();
@@ -290,8 +291,13 @@ class _ElderHomeScreenState extends State<ElderHomeScreen> {
           children: [
             Expanded(child: _actionButton(icon: Icons.smart_toy, label: 'Ask AI', onTap: widget.onOpenAiChat)),
             const SizedBox(width: AppTheme.spacingMd),
-            Expanded(child: _actionButton(icon: Icons.person, label: 'Profile', onTap: widget.onViewProfile)),
+            Expanded(child: _actionButton(icon: Icons.assignment_turned_in, label: 'Care Plan', onTap: widget.onOpenCarePlan)),
           ],
+        ),
+        const SizedBox(height: AppTheme.spacingMd),
+        SizedBox(
+          width: double.infinity,
+          child: _actionButton(icon: Icons.person, label: 'Profile', onTap: widget.onViewProfile),
         ),
       ],
     );

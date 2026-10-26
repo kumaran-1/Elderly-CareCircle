@@ -10,6 +10,8 @@ import { NotificationService } from "./services/notificationService";
 import { AiService } from "./services/aiService";
 import { SosService } from "./services/sosService";
 import { ReportService } from "./services/reportService";
+import { CareInstructionService } from "./services/careInstructionService";
+import { CarePlanService } from "./services/carePlanService";
 import { createApp } from "./app";
 import { FileStore } from "./persistence/fileStore";
 import { MongoStore } from "./persistence/mongoStore";
@@ -35,6 +37,8 @@ async function bootstrap() {
   const ai = new AiService(store);
   const sos = new SosService(store, circles, notifications, persist);
   const reports = new ReportService(store);
+  const careInstructions = new CareInstructionService(store, circles, notifications, persist);
+  const carePlan = new CarePlanService(store, circles, notifications, persist);
 
   const app = createApp(store, {
     auth,
@@ -45,7 +49,9 @@ async function bootstrap() {
     notifications,
     ai,
     sos,
-    reports
+    reports,
+    careInstructions,
+    carePlan
   }, {
     onChange: persist
   });

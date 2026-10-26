@@ -49,7 +49,7 @@ class SectionCard extends StatelessWidget {
               ),
               const SizedBox(width: AppTheme.spacingMd),
               Expanded(
-                child: Text(title, style: TextStyle(fontSize: AppTheme.fontSizeXl, fontWeight: FontWeight.w700, color: AppTheme.ink)),
+                child: Text(title, style: const TextStyle(fontSize: AppTheme.fontSizeXl, fontWeight: FontWeight.w700, color: AppTheme.ink)),
               ),
               if (trailing != null) trailing!,
             ],
@@ -295,7 +295,10 @@ Color categoryColor(String category) {
     case 'medication':
       return AppTheme.amber;
     case 'careInstruction':
+    case 'careTask':
       return AppTheme.teal;
+    case 'careNote':
+      return AppTheme.coral;
     case 'ai':
       return AppTheme.tealDark;
     default:
@@ -313,6 +316,10 @@ IconData categoryIcon(String category) {
       return Icons.medication;
     case 'careInstruction':
       return Icons.comment;
+    case 'careTask':
+      return Icons.checklist_rtl;
+    case 'careNote':
+      return Icons.menu_book;
     case 'hydration':
       return Icons.water_drop;
     case 'exercise':

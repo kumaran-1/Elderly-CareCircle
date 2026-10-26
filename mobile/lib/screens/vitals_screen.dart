@@ -251,7 +251,7 @@ class _VitalsScreenState extends State<VitalsScreen> {
     final readings = (_data?['readings'] as List<dynamic>? ?? const []).cast<Map<String, dynamic>>();
     if (readings.isEmpty) {
       return [
-        CCEmpty(icon: Icons.monitor_heart_outlined, message: 'No vital readings recorded yet.'),
+        const CCEmpty(icon: Icons.monitor_heart_outlined, message: 'No vital readings recorded yet.'),
       ];
     }
     return readings.reversed.map((reading) {

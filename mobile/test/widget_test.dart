@@ -11,7 +11,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:carecircle_mobile/screens/home_screen.dart';
 
 void main() {
-  testWidgets('CareCircle landing screen shows role choices', (WidgetTester tester) async {
+  testWidgets('CareCircle landing screen shows role choices',
+      (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: HomeScreen(loginBuilder: (_) => const SizedBox()),
@@ -23,6 +24,21 @@ void main() {
     expect(find.text('Elder'), findsOneWidget);
     expect(find.text('Family'), findsOneWidget);
     expect(find.text('Caregiver'), findsOneWidget);
-    expect(find.text('Admin'), findsOneWidget);
+    expect(find.text('Admin'), findsNothing);
+  });
+
+  testWidgets('CareCircle landing screen surfaces a session error',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeScreen(
+          loginBuilder: (_) => const SizedBox(),
+          errorMessage: 'Your session expired. Please sign in again.',
+        ),
+      ),
+    );
+
+    expect(find.text('Your session expired. Please sign in again.'),
+        findsOneWidget);
   });
 }

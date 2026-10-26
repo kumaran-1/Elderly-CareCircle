@@ -41,13 +41,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      await widget.apiClient.register(
+      final email = _emailController.text.trim();
+      final response = await widget.apiClient.register(
         name: _nameController.text.trim(),
-        email: _emailController.text.trim(),
+        email: email,
         password: _passwordController.text,
         role: _selectedRole,
       );
       if (!mounted) return;
+
+      final verified = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _OtpDialog(
+          apiClient: widget.apiClient,
+          email: email,
+          suggestedCode: response['otpCode']?.toString(),
+        ),
+      );
+      if (verified != true || !mounted) return;
+
       widget.onAuthenticated();
       Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (error) {
@@ -68,11 +81,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                borderRadius: BorderRadius.circular(28),
                 child: Container(
                   decoration: BoxDecoration(
                     color: AppTheme.surface,
-                    border: Border.all(color: AppTheme.surfaceBorder),
+                    border: Border.all(color: const Color(0xFFD7E3DD)),
                     boxShadow: const [BoxShadow(color: Color(0x1A18332B), blurRadius: 28, offset: Offset(0, 18))],
                   ),
                   child: Padding(
@@ -211,7 +224,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           decoration: BoxDecoration(
             color: selected ? AppTheme.accent : Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: selected ? AppTheme.accent : AppTheme.surfaceBorder),
+            border: Border.all(color: selected ? AppTheme.accent : const Color(0xFFD7E3DD)),
           ),
           child: Center(
             child: Text(
@@ -225,6 +238,106 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _OtpDialog extends StatefulWidget {
+  const _OtpDialog({
+    required this.apiClient,
+    required this.email,
+    this.suggestedCode,
+  });
+
+  final ApiClient apiClient;
+  final String email;
+  final String? suggestedCode;
+
+  @override
+  State<_OtpDialog> createState() => _OtpDialogState();
+}
+
+class _OtpDialogState extends State<_OtpDialog> {
+  late final TextEditingController _controller;
+  bool _isVerifying = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.suggestedCode ?? '');
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _verify() async {
+    final code = _controller.text.trim();
+    if (code.length != 6) {
+      setState(() => _error = 'Enter the 6-digit verification code.');
+      return;
+    }
+
+    setState(() {
+      _isVerifying = true;
+      _error = null;
+    });
+
+    try {
+      await widget.apiClient.verifyOtp(widget.email, code);
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _error = error.toString().replaceFirst('Exception: ', '');
+          _isVerifying = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Verify your email'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Enter the 6-digit code sent to ${widget.email}.',
+            style: const TextStyle(color: AppTheme.muted),
+          ),
+          const SizedBox(height: AppTheme.spacingMd),
+          TextField(
+            controller: _controller,
+            keyboardType: TextInputType.number,
+            maxLength: 6,
+            decoration: const InputDecoration(
+              labelText: 'Verification code',
+              hintText: '000000',
+            ),
+          ),
+          if (_error != null)
+            Text(_error!, style: const TextStyle(color: AppTheme.danger, fontSize: AppTheme.fontSizeSm)),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isVerifying ? null : () => Navigator.of(context).pop(false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _isVerifying ? null : _verify,
+          child: _isVerifying
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : const Text('Verify'),
+        ),
+      ],
     );
   }
 }

@@ -41,6 +41,10 @@ export class FileStore {
 
 function mergeStore(base: SystemStore, incoming: Partial<SystemStore>): SystemStore {
   const users = (incoming.users ?? base.users).map((user) => ({ ...user, fcmTokens: user.fcmTokens ?? [] }));
+  const appointments = (incoming.appointments ?? base.appointments).map((appointment) => ({
+    ...appointment,
+    status: appointment.status ?? "scheduled"
+  }));
   return {
     users,
     careCircles: incoming.careCircles ?? base.careCircles,
@@ -50,7 +54,9 @@ function mergeStore(base: SystemStore, incoming: Partial<SystemStore>): SystemSt
     medicationLogs: incoming.medicationLogs ?? base.medicationLogs,
     hydrationLogs: incoming.hydrationLogs ?? base.hydrationLogs,
     exerciseLogs: incoming.exerciseLogs ?? base.exerciseLogs,
-    appointments: incoming.appointments ?? base.appointments,
+    appointments,
+    careTasks: incoming.careTasks ?? base.careTasks,
+    careNotes: incoming.careNotes ?? base.careNotes,
     conversations: incoming.conversations ?? base.conversations,
     notifications: incoming.notifications ?? base.notifications,
     sosEvents: incoming.sosEvents ?? base.sosEvents,

@@ -3,6 +3,8 @@ import { config } from "../config";
 import { createEmptyStore } from "./store";
 import type {
   CareCircle,
+  CareNote,
+  CareTask,
   Conversation,
   ExerciseLog,
   HydrationLog,
@@ -64,17 +66,7 @@ passwordHash: hash(config.demoPassword ?? "CareCircleDemo123"),    role: "caregi
     profile: { contactNumber: "+91-90000-00003" }
   });
 
-  const admin = makeUser({
-    id: "user-admin-1",
-    name: "Admin User",
-    email: "admin@example.com",
-    passwordHash: hash(config.demoPassword),
-    role: "admin",
-    verified: true,
-    profile: { contactNumber: "+91-90000-00004" }
-  });
-
-  store.users.push(elder, family, caregiver, admin);
+  store.users.push(elder, family, caregiver);
 
   const careCircle: CareCircle = {
     id: "circle-1",
@@ -171,6 +163,46 @@ passwordHash: hash(config.demoPassword ?? "CareCircleDemo123"),    role: "caregi
     }
   ];
 
+  const careTasks: CareTask[] = [
+    {
+      id: "task-1",
+      elderId: elder.id,
+      createdByUserId: caregiver.id,
+      assignedToUserId: caregiver.id,
+      title: "Check blood pressure after lunch",
+      notes: "Record the reading and notify the family if it is above 140/90.",
+      dueAt: new Date(now.getTime() + minutes(180)).toISOString(),
+      priority: "high",
+      status: "pending",
+      createdAt: new Date(now.getTime() - minutes(55)).toISOString()
+    },
+    {
+      id: "task-2",
+      elderId: elder.id,
+      createdByUserId: family.id,
+      assignedToUserId: elder.id,
+      title: "Take a short walk",
+      notes: "A 15 minute walk in the garden before dinner.",
+      dueAt: new Date(now.getTime() + minutes(300)).toISOString(),
+      priority: "medium",
+      status: "pending",
+      createdAt: new Date(now.getTime() - minutes(45)).toISOString()
+    }
+  ];
+
+  const careNotes: CareNote[] = [
+    {
+      id: "note-1",
+      elderId: elder.id,
+      authorId: caregiver.id,
+      type: "handover",
+      title: "Afternoon handover",
+      body: "Lunch completed, medication taken on time, and hydration is on track. Blood pressure check is due after lunch.",
+      shift: "afternoon",
+      createdAt: new Date(now.getTime() - minutes(35)).toISOString()
+    }
+  ];
+
   const conversations: Conversation[] = [
     {
       id: "chat-1",
@@ -225,6 +257,8 @@ passwordHash: hash(config.demoPassword ?? "CareCircleDemo123"),    role: "caregi
   store.medicationLogs.push(...medicationLogs);
   store.hydrationLogs.push(...hydrationLogs);
   store.exerciseLogs.push(...exerciseLogs);
+  store.careTasks.push(...careTasks);
+  store.careNotes.push(...careNotes);
   store.conversations.push(...conversations);
   store.notifications.push(...notifications);
   store.sosEvents.push(...sosEvents);

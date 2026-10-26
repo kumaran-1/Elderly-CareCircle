@@ -5,7 +5,8 @@ import '../theme.dart';
 import '../widgets/cc_components.dart';
 
 class AppointmentsScreen extends StatefulWidget {
-  const AppointmentsScreen({super.key, required this.apiClient, required this.elderId});
+  const AppointmentsScreen(
+      {super.key, required this.apiClient, required this.elderId});
 
   final ApiClient apiClient;
   final String elderId;
@@ -43,22 +44,48 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   Future<void> _createAppointment() => _openAppointmentDialog();
 
   Future<void> _openAppointmentDialog({Map<String, dynamic>? existing}) async {
-    final nameCtrl = TextEditingController(text: existing?['doctorName']?.toString() ?? '');
-    final specCtrl = TextEditingController(text: existing?['specialty']?.toString() ?? '');
-    final notesCtrl = TextEditingController(text: existing?['notes']?.toString() ?? '');
+    final nameCtrl =
+        TextEditingController(text: existing?['doctorName']?.toString() ?? '');
+    final specCtrl =
+        TextEditingController(text: existing?['specialty']?.toString() ?? '');
+    final notesCtrl =
+        TextEditingController(text: existing?['notes']?.toString() ?? '');
+    final followUpNotesCtrl = TextEditingController(
+        text: existing?['followUpNotes']?.toString() ?? '');
+    void disposeControllers() {
+      nameCtrl.dispose();
+      specCtrl.dispose();
+      notesCtrl.dispose();
+      followUpNotesCtrl.dispose();
+    }
+
     DateTime? selectedDate;
     TimeOfDay? selectedTime;
-    final existingDt = DateTime.tryParse(existing?['dateTime']?.toString() ?? '');
+    DateTime? followUpDate;
+    TimeOfDay? followUpTime;
+    final existingDt =
+        DateTime.tryParse(existing?['dateTime']?.toString() ?? '');
     if (existingDt != null) {
-      selectedDate = DateTime(existingDt.year, existingDt.month, existingDt.day);
-      selectedTime = TimeOfDay(hour: existingDt.hour, minute: existingDt.minute);
+      selectedDate =
+          DateTime(existingDt.year, existingDt.month, existingDt.day);
+      selectedTime =
+          TimeOfDay(hour: existingDt.hour, minute: existingDt.minute);
+    }
+    final existingFollowUp =
+        DateTime.tryParse(existing?['followUpAt']?.toString() ?? '');
+    if (existingFollowUp != null) {
+      followUpDate = DateTime(
+          existingFollowUp.year, existingFollowUp.month, existingFollowUp.day);
+      followUpTime = TimeOfDay(
+          hour: existingFollowUp.hour, minute: existingFollowUp.minute);
     }
 
     final created = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(existing == null ? 'New Appointment' : 'Reschedule Appointment'),
+          title: Text(
+              existing == null ? 'New Appointment' : 'Reschedule Appointment'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -75,11 +102,16 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                 const SizedBox(height: AppTheme.spacingMd),
                 InkWell(
                   onTap: () async {
+                    final today = DateUtils.dateOnly(DateTime.now());
                     final date = await showDatePicker(
                       context: ctx,
-                      initialDate: selectedDate ?? DateTime.now(),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                      initialDate:
+                          selectedDate != null && !selectedDate!.isBefore(today)
+                              ? selectedDate!
+                              : today,
+                      firstDate: today,
+                      lastDate:
+                          DateTime(today.year + 1, today.month, today.day),
                     );
                     if (date != null) setDialogState(() => selectedDate = date);
                   },
@@ -93,7 +125,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                           ? '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}'
                           : 'Select date',
                       style: TextStyle(
-                        color: selectedDate != null ? AppTheme.ink : AppTheme.muted,
+                        color: selectedDate != null
+                            ? AppTheme.ink
+                            : AppTheme.muted,
                       ),
                     ),
                   ),
@@ -117,7 +151,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                           ? '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}'
                           : 'Select time',
                       style: TextStyle(
-                        color: selectedTime != null ? AppTheme.ink : AppTheme.muted,
+                        color: selectedTime != null
+                            ? AppTheme.ink
+                            : AppTheme.muted,
                       ),
                     ),
                   ),
@@ -125,28 +161,119 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                 const SizedBox(height: AppTheme.spacingSm),
                 TextField(
                   controller: notesCtrl,
-                  decoration: const InputDecoration(labelText: 'Notes (optional)'),
+                  decoration:
+                      const InputDecoration(labelText: 'Notes (optional)'),
+                ),
+                const SizedBox(height: AppTheme.spacingMd),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Follow-up visit (optional)',
+                    style: TextStyle(
+                      color: AppTheme.ink,
+                      fontWeight: FontWeight.w800,
+                      fontSize: AppTheme.fontSizeMd,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingSm),
+                InkWell(
+                  onTap: () async {
+                    final today = DateUtils.dateOnly(DateTime.now());
+                    final suggested =
+                        DateTime(today.year, today.month, today.day + 7);
+                    final date = await showDatePicker(
+                      context: ctx,
+                      initialDate:
+                          followUpDate != null && !followUpDate!.isBefore(today)
+                              ? followUpDate!
+                              : suggested,
+                      firstDate: today,
+                      lastDate:
+                          DateTime(today.year + 2, today.month, today.day),
+                    );
+                    if (date != null) setDialogState(() => followUpDate = date);
+                  },
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Follow-up date',
+                      suffixIcon: Icon(Icons.event_repeat),
+                    ),
+                    child: Text(
+                      followUpDate != null
+                          ? '${followUpDate!.day}/${followUpDate!.month}/${followUpDate!.year}'
+                          : 'Not scheduled',
+                      style: TextStyle(
+                        color: followUpDate != null
+                            ? AppTheme.ink
+                            : AppTheme.muted,
+                      ),
+                    ),
+                  ),
+                ),
+                if (followUpDate != null) ...[
+                  const SizedBox(height: AppTheme.spacingSm),
+                  InkWell(
+                    onTap: () async {
+                      final time = await showTimePicker(
+                        context: ctx,
+                        initialTime:
+                            followUpTime ?? const TimeOfDay(hour: 9, minute: 0),
+                      );
+                      if (time != null) {
+                        setDialogState(() => followUpTime = time);
+                      }
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Follow-up time',
+                        suffixIcon: Icon(Icons.access_time),
+                      ),
+                      child: Text(
+                        followUpTime != null
+                            ? '${followUpTime!.hour.toString().padLeft(2, '0')}:${followUpTime!.minute.toString().padLeft(2, '0')}'
+                            : '09:00',
+                        style: const TextStyle(color: AppTheme.ink),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: AppTheme.spacingSm),
+                TextField(
+                  controller: followUpNotesCtrl,
+                  decoration: const InputDecoration(
+                      labelText: 'Follow-up notes (optional)'),
                 ),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel')),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Create'),
+              child: Text(existing == null ? 'Create' : 'Save'),
             ),
           ],
         ),
       ),
     );
 
-    if (created != true) return;
+    if (created != true) {
+      disposeControllers();
+      return;
+    }
 
-    if (selectedDate == null || nameCtrl.text.trim().isEmpty || specCtrl.text.trim().isEmpty) {
+    if (selectedDate == null ||
+        nameCtrl.text.trim().isEmpty ||
+        specCtrl.text.trim().isEmpty) {
+      disposeControllers();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please fill in doctor name, specialty, and select a date.')),
+          const SnackBar(
+              content: Text(
+                  'Please fill in doctor name, specialty, and select a date.')),
         );
       }
       return;
@@ -159,9 +286,19 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       selectedTime?.hour ?? 9,
       selectedTime?.minute ?? 0,
     );
+    final followUpAt = followUpDate == null
+        ? null
+        : DateTime(
+            followUpDate!.year,
+            followUpDate!.month,
+            followUpDate!.day,
+            followUpTime?.hour ?? 9,
+            followUpTime?.minute ?? 0,
+          ).toUtc().toIso8601String();
+    final notes = notesCtrl.text.trim();
+    final followUpNotes = followUpNotesCtrl.text.trim();
 
     try {
-      final notes = notesCtrl.text.trim();
       if (existing == null) {
         await widget.apiClient.createAppointment(
           elderId: widget.elderId,
@@ -169,6 +306,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
           specialty: specCtrl.text.trim(),
           dateTime: dt.toUtc().toIso8601String(),
           notes: notes.isEmpty ? null : notes,
+          followUpAt: followUpAt,
+          followUpNotes: followUpAt == null || followUpNotes.isEmpty
+              ? null
+              : followUpNotes,
         );
       } else {
         await widget.apiClient.updateAppointment(
@@ -178,21 +319,37 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
           specialty: specCtrl.text.trim(),
           dateTime: dt.toUtc().toIso8601String(),
           notes: notes,
+          followUpAt: followUpAt,
+          followUpNotes: followUpAt == null ? null : followUpNotes,
         );
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(existing == null ? 'Appointment created.' : 'Appointment updated.')),
+          SnackBar(
+              content: Text(existing == null
+                  ? 'Appointment created.'
+                  : 'Appointment updated.')),
         );
         _load();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed: ${e.toString().replaceFirst('Exception: ', '')}')),
+          SnackBar(
+              content: Text(
+                  'Failed: ${e.toString().replaceFirst('Exception: ', '')}')),
         );
       }
+    } finally {
+      disposeControllers();
     }
+  }
+
+  String _followUpLabel(String value) {
+    final dt = DateTime.tryParse(value);
+    if (dt == null) return 'Follow-up scheduled';
+    return 'Follow-up: ${dt.day}/${dt.month}/${dt.year} at '
+        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
   Future<void> _confirmCancel(Map<String, dynamic> appt) async {
@@ -205,7 +362,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
           'Future reminders for it will stop.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Keep')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: AppTheme.sosRed),
@@ -230,7 +389,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed: ${e.toString().replaceFirst('Exception: ', '')}'),
+            content:
+                Text('Failed: ${e.toString().replaceFirst('Exception: ', '')}'),
             backgroundColor: AppTheme.sosRed,
           ),
         );
@@ -262,27 +422,36 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
               : RefreshIndicator(
                   onRefresh: _load,
                   child: _appointments.isEmpty
-                      ? CCEmpty(
+                      ? const CCEmpty(
                           icon: Icons.calendar_month,
-                          message: 'No appointments yet.\nTap the button below to schedule one.',
+                          message:
+                              'No appointments yet.\nTap the button below to schedule one.',
                         )
                       : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(AppTheme.spacingXl, AppTheme.spacingXl, AppTheme.spacingXl, 100),
+                          padding: const EdgeInsets.fromLTRB(AppTheme.spacingXl,
+                              AppTheme.spacingXl, AppTheme.spacingXl, 100),
                           itemCount: _appointments.length,
                           itemBuilder: (context, index) {
                             final appt = _appointments[index];
-                            final dt = DateTime.tryParse(appt['dateTime']?.toString() ?? '');
-                            final isPast = dt != null && dt.isBefore(DateTime.now());
-                            final isCancelled = appt['status']?.toString() == 'cancelled';
+                            final dt = DateTime.tryParse(
+                                appt['dateTime']?.toString() ?? '');
+                            final isPast =
+                                dt != null && dt.isBefore(DateTime.now());
+                            final isCancelled =
+                                appt['status']?.toString() == 'cancelled';
                             final dimmed = isPast || isCancelled;
                             return Container(
-                              margin: const EdgeInsets.only(bottom: AppTheme.spacingMd),
+                              margin: const EdgeInsets.only(
+                                  bottom: AppTheme.spacingMd),
                               padding: const EdgeInsets.all(AppTheme.spacingXl),
                               decoration: BoxDecoration(
                                 color: AppTheme.surface,
-                                borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                                borderRadius:
+                                    BorderRadius.circular(AppTheme.radiusLarge),
                                 border: Border.all(
-                                  color: dimmed ? AppTheme.surfaceBorder : AppTheme.teal.withValues(alpha: 0.3),
+                                  color: dimmed
+                                      ? AppTheme.surfaceBorder
+                                      : AppTheme.teal.withValues(alpha: 0.3),
                                 ),
                                 boxShadow: [
                                   BoxShadow(
@@ -296,46 +465,131 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.all(AppTheme.spacingMd),
+                                    padding: const EdgeInsets.all(
+                                        AppTheme.spacingMd),
                                     decoration: BoxDecoration(
-                                      color: (dimmed ? AppTheme.muted : AppTheme.teal).withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                                      color: (dimmed
+                                              ? AppTheme.muted
+                                              : AppTheme.teal)
+                                          .withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(
+                                          AppTheme.radiusMedium),
                                     ),
                                     child: Icon(
                                       Icons.calendar_month,
-                                      color: dimmed ? AppTheme.muted : AppTheme.teal,
+                                      color: dimmed
+                                          ? AppTheme.muted
+                                          : AppTheme.teal,
                                       size: 24,
                                     ),
                                   ),
                                   const SizedBox(width: AppTheme.spacingLg),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         if (isCancelled) ...[
                                           const Text('CANCELLED',
                                               style: TextStyle(
                                                   color: AppTheme.sosRed,
                                                   fontWeight: FontWeight.w800,
-                                                  fontSize: AppTheme.fontSizeSm)),
-                                          const SizedBox(height: AppTheme.spacingXs),
+                                                  fontSize:
+                                                      AppTheme.fontSizeSm)),
+                                          const SizedBox(
+                                              height: AppTheme.spacingXs),
                                         ],
-                                        Text(appt['doctorName']?.toString() ?? '',
-                                            style: const TextStyle(color: AppTheme.ink, fontWeight: FontWeight.w800, fontSize: AppTheme.fontSizeLg)),
-                                        const SizedBox(height: AppTheme.spacingXs),
-                                        Text(appt['specialty']?.toString() ?? '',
-                                            style: const TextStyle(color: AppTheme.teal, fontSize: AppTheme.fontSizeMd)),
-                                        const SizedBox(height: AppTheme.spacingSm),
+                                        Text(
+                                            appt['doctorName']?.toString() ??
+                                                '',
+                                            style: const TextStyle(
+                                                color: AppTheme.ink,
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: AppTheme.fontSizeLg)),
+                                        const SizedBox(
+                                            height: AppTheme.spacingXs),
+                                        Text(
+                                            appt['specialty']?.toString() ?? '',
+                                            style: const TextStyle(
+                                                color: AppTheme.teal,
+                                                fontSize: AppTheme.fontSizeMd)),
+                                        const SizedBox(
+                                            height: AppTheme.spacingSm),
                                         Text(
                                           dt != null
                                               ? '${dt.day}/${dt.month}/${dt.year} at ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}'
-                                              : appt['dateTime']?.toString() ?? '',
-                                          style: const TextStyle(color: AppTheme.muted, fontSize: AppTheme.fontSizeSm),
+                                              : appt['dateTime']?.toString() ??
+                                                  '',
+                                          style: const TextStyle(
+                                              color: AppTheme.muted,
+                                              fontSize: AppTheme.fontSizeSm),
                                         ),
-                                        if (appt['notes'] != null && appt['notes'].toString().isNotEmpty) ...[
-                                          const SizedBox(height: AppTheme.spacingSm),
+                                        if (appt['notes'] != null &&
+                                            appt['notes']
+                                                .toString()
+                                                .isNotEmpty) ...[
+                                          const SizedBox(
+                                              height: AppTheme.spacingSm),
                                           Text(appt['notes'].toString(),
-                                              style: const TextStyle(color: AppTheme.muted, fontSize: AppTheme.fontSizeSm)),
+                                              style: const TextStyle(
+                                                  color: AppTheme.muted,
+                                                  fontSize:
+                                                      AppTheme.fontSizeSm)),
+                                        ],
+                                        if (appt['followUpAt'] != null &&
+                                            appt['followUpAt']
+                                                .toString()
+                                                .isNotEmpty) ...[
+                                          const SizedBox(
+                                              height: AppTheme.spacingSm),
+                                          Container(
+                                            padding: const EdgeInsets.all(
+                                                AppTheme.spacingSm),
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.warning
+                                                  .withValues(alpha: 0.12),
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      AppTheme.radiusSmall),
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  _followUpLabel(
+                                                      appt['followUpAt']
+                                                          .toString()),
+                                                  style: const TextStyle(
+                                                    color: AppTheme.ink,
+                                                    fontSize:
+                                                        AppTheme.fontSizeSm,
+                                                    fontWeight: FontWeight.w800,
+                                                  ),
+                                                ),
+                                                if (appt['followUpNotes'] !=
+                                                        null &&
+                                                    appt['followUpNotes']
+                                                        .toString()
+                                                        .isNotEmpty)
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            top: AppTheme
+                                                                .spacingXs),
+                                                    child: Text(
+                                                      appt['followUpNotes']
+                                                          .toString(),
+                                                      style: const TextStyle(
+                                                        color: AppTheme.muted,
+                                                        fontSize:
+                                                            AppTheme.fontSizeSm,
+                                                      ),
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
                                         ],
                                       ],
                                     ),
@@ -345,13 +599,18 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         IconButton(
-                                          onPressed: () => _openAppointmentDialog(existing: appt),
-                                          icon: const Icon(Icons.edit_outlined, color: AppTheme.teal),
+                                          onPressed: () =>
+                                              _openAppointmentDialog(
+                                                  existing: appt),
+                                          icon: const Icon(Icons.edit_outlined,
+                                              color: AppTheme.teal),
                                           tooltip: 'Reschedule',
                                         ),
                                         IconButton(
                                           onPressed: () => _confirmCancel(appt),
-                                          icon: const Icon(Icons.cancel_outlined, color: AppTheme.sosRed),
+                                          icon: const Icon(
+                                              Icons.cancel_outlined,
+                                              color: AppTheme.sosRed),
                                           tooltip: 'Cancel appointment',
                                         ),
                                       ],

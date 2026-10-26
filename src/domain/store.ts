@@ -10,6 +10,8 @@ export const createEmptyStore = (): SystemStore => ({
   hydrationLogs: [],
   exerciseLogs: [],
   appointments: [],
+  careTasks: [],
+  careNotes: [],
   conversations: [],
   notifications: [],
   sosEvents: [],

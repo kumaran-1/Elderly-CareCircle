@@ -14,6 +14,8 @@ import { SosService } from "./services/sosService";
 import { ReportService } from "./services/reportService";
 import { FileStorageService } from "./services/fileStorageService";
 import { ReportPdfService } from "./services/reportPdfService";
+import { CareInstructionService } from "./services/careInstructionService";
+import { CarePlanService } from "./services/carePlanService";
 
 export interface Services {
   auth: AuthService;
@@ -25,6 +27,8 @@ export interface Services {
   ai: AiService;
   sos: SosService;
   reports: ReportService;
+  careInstructions: CareInstructionService;
+  carePlan: CarePlanService;
 }
 
 export interface AppOptions {
@@ -59,12 +63,12 @@ const createCircleSchema = z.object({
 
 const inviteSchema = z.object({
   email: z.string().email(),
-  relation: z.enum(["elder", "family", "caregiver", "admin", "other"])
+  relation: z.enum(["family", "caregiver"])
 });
 
 const acceptSchema = z.object({
   inviteCode: z.string().min(4),
-  relation: z.enum(["elder", "family", "caregiver", "admin", "other"]).default("family")
+  relation: z.enum(["family", "caregiver"]).default("family")
 });
 
 const vitalSchema = z.object({
@@ -106,7 +110,104 @@ const appointmentSchema = z.object({
   doctorName: z.string().min(2),
   specialty: z.string().min(2),
   dateTime: z.string().datetime(),
-  notes: z.string().optional()
+  notes: z.string().optional(),
+  followUpNotes: z.string().optional(),
+  followUpAt: z.string().datetime().optional()
+});
+
+const appointmentUpdateSchema = z
+  .object({
+    elderId: z.string(),
+    doctorName: z.string().min(2).optional(),
+    specialty: z.string().min(2).optional(),
+    dateTime: z.string().datetime().optional(),
+    notes: z.string().optional(),
+    followUpNotes: z.string().optional(),
+    followUpAt: z.string().datetime().optional()
+  })
+  .refine(
+    (value) =>
+      value.doctorName !== undefined ||
+      value.specialty !== undefined ||
+      value.dateTime !== undefined ||
+      value.notes !== undefined ||
+      value.followUpNotes !== undefined ||
+      value.followUpAt !== undefined,
+    "At least one field to update is required."
+  );
+
+const appointmentCancelSchema = z.object({
+  elderId: z.string()
+});
+
+const careInstructionSchema = z.object({
+  elderId: z.string(),
+  title: z.string().min(2),
+  message: z.string().min(2),
+  priority: z.enum(["low", "medium", "high", "urgent"]),
+  category: z.string().min(1),
+  scheduledAt: z.string().datetime().optional()
+});
+
+const careTaskSchema = z.object({
+  elderId: z.string(),
+  assignedToUserId: z.string().optional(),
+  title: z.string().min(2),
+  notes: z.string().optional(),
+  dueAt: z.string().datetime().optional(),
+  priority: z.enum(["low", "medium", "high"]).default("medium")
+});
+
+const careTaskUpdateSchema = z
+  .object({
+    elderId: z.string(),
+    status: z.enum(["pending", "completed"]).optional(),
+    assignedToUserId: z.string().optional(),
+    title: z.string().min(2).optional(),
+    notes: z.string().optional(),
+    dueAt: z.string().datetime().optional(),
+    priority: z.enum(["low", "medium", "high"]).optional()
+  })
+  .refine(
+    (value) =>
+      value.status !== undefined ||
+      value.assignedToUserId !== undefined ||
+      value.title !== undefined ||
+      value.notes !== undefined ||
+      value.dueAt !== undefined ||
+      value.priority !== undefined,
+    "At least one field to update is required."
+  );
+
+const careNoteSchema = z.object({
+  elderId: z.string(),
+  type: z.enum(["note", "handover"]).default("note"),
+  title: z.string().min(2),
+  body: z.string().min(2),
+  shift: z.enum(["morning", "afternoon", "evening", "night"]).optional()
+});
+
+const profileUpdateSchema = z.object({
+  name: z.string().min(2).optional(),
+  profile: z
+    .object({
+      dateOfBirth: z.string().optional(),
+      photoUrl: z.string().optional(),
+      contactNumber: z.string().optional(),
+      medicalConditions: z.array(z.string()).optional(),
+      allergies: z.array(z.string()).optional()
+    })
+    .optional()
+});
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(8),
+  newPassword: z
+    .string()
+    .min(8)
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter.")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter.")
+    .regex(/[0-9]/, "Password must contain at least one number.")
 });
 
 const uploadSchema = z.object({
@@ -150,6 +251,11 @@ export function createApp(store: SystemStore, services: Services, options: AppOp
       req.auth = services.auth.authenticate(header.slice("Bearer ".length));
     } catch (error) {
       res.status(401).json({ message: error instanceof Error ? error.message : "Unauthorized" });
+      return;
+    }
+
+    if (req.auth.role === "admin") {
+      res.status(403).json({ message: "Admin accounts are no longer supported in CareCircle." });
       return;
     }
 
@@ -243,7 +349,12 @@ export function createApp(store: SystemStore, services: Services, options: AppOp
     } else if (user.role === "caregiver") {
       const linkedElders = services.circles.getLinkedEldersForUser(user.id);
       const tasks = linkedElders.reduce((sum, elderId) => {
-        return sum + services.medication.getPlansForElder(elderId).length + services.lifestyle.getAppointmentsForElder(elderId).length;
+        return (
+          sum +
+          services.medication.getPlansForElder(elderId).length +
+          services.lifestyle.getAppointmentsForElder(elderId).length +
+          services.carePlan.getPendingTaskCount(elderId)
+        );
       }, 0);
 
       cards.push(
@@ -254,14 +365,7 @@ export function createApp(store: SystemStore, services: Services, options: AppOp
       );
       actions.push("Client list", "Vitals", "Medication", "Appointments", "Reports");
     } else {
-      const analytics = services.reports.adminAnalytics();
-      cards.push(
-        { label: "Active users", value: `${analytics.totalUsers}`, tone: "normal" },
-        { label: "Care circles", value: `${analytics.totalCareCircles}`, tone: "normal" },
-        { label: "Active SOS", value: `${analytics.activeSos}`, tone: analytics.activeSos > 0 ? "alert" : "normal" },
-        { label: "Medication adherence", value: `${analytics.medicationAdherencePercent}%`, tone: analytics.medicationAdherencePercent >= 85 ? "normal" : "attention" }
-      );
-      actions.push("User management", "Platform analytics", "Notification health", "SOS metrics");
+      throw new Error("Unsupported account role.");
     }
 
     return {
@@ -294,6 +398,10 @@ export function createApp(store: SystemStore, services: Services, options: AppOp
     const payload = loginSchema.parse(req.body);
     try {
       const result = services.auth.login(payload);
+      if (result.user.role === "admin") {
+        res.status(403).json({ message: "Admin accounts are no longer supported in CareCircle." });
+        return;
+      }
       res.json({
         message: "Login successful.",
         user: result.user,
@@ -308,6 +416,10 @@ export function createApp(store: SystemStore, services: Services, options: AppOp
     const payload = verifyOtpSchema.parse(req.body);
     try {
       const result = services.auth.verifyOtp(payload.email, payload.otp);
+      if (result.user.role === "admin") {
+        res.status(403).json({ message: "Admin accounts are no longer supported in CareCircle." });
+        return;
+      }
       res.json({
         message: "OTP verified successfully.",
         user: result.user,
@@ -331,6 +443,11 @@ export function createApp(store: SystemStore, services: Services, options: AppOp
 
       if (claims.tokenVersion !== user.refreshTokenVersion) {
         res.status(401).json({ message: "Refresh token has been revoked." });
+        return;
+      }
+
+      if (user.role === "admin") {
+        res.status(403).json({ message: "Admin accounts are no longer supported in CareCircle." });
         return;
       }
 
@@ -360,6 +477,34 @@ export function createApp(store: SystemStore, services: Services, options: AppOp
     res.json({ user, dashboard: buildDashboard(auth.userId) });
   });
 
+  app.put("/me", async (req, res) => {
+    if (!requireAuth(req, res)) {
+      return;
+    }
+
+    try {
+      const payload = profileUpdateSchema.parse(req.body);
+      const user = await services.auth.updateProfile(req.auth!.userId, payload);
+      res.json({ user });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Unable to update profile." });
+    }
+  });
+
+  app.put("/me/password", async (req, res) => {
+    if (!requireAuth(req, res)) {
+      return;
+    }
+
+    try {
+      const payload = changePasswordSchema.parse(req.body);
+      await services.auth.changePassword(req.auth!.userId, payload.currentPassword, payload.newPassword);
+      res.json({ message: "Password changed successfully." });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Unable to change password." });
+    }
+  });
+
   app.get("/dashboard", (req, res) => {
     if (!requireAuth(req, res)) {
       return;
@@ -379,7 +524,7 @@ export function createApp(store: SystemStore, services: Services, options: AppOp
   });
 
   app.post("/care-circles", (req, res) => {
-    if (!requireRole(["elder", "family"], req, res)) {
+    if (!requireRole(["elder"], req, res)) {
       return;
     }
 
@@ -390,18 +535,8 @@ export function createApp(store: SystemStore, services: Services, options: AppOp
       return;
     }
 
-    const elderId = payload.elderId ?? creator.id;
-    if (creator.role !== "elder" && creator.role !== "family") {
-      res.status(403).json({ message: "Only elder or family users can create a CareCircle in this MVP." });
-      return;
-    }
-
-    const existing = services.circles.getCircleByElderId(elderId);
-    const circle = existing ?? services.circles.createCircle(elderId, creator.id, payload.name);
-    if (existing && !existing.members.some((member) => member.userId === creator.id)) {
-      existing.members.push({ userId: creator.id, relation: creator.role === "elder" ? "elder" : "family", acceptedAt: new Date().toISOString() });
-    }
-
+    const existing = services.circles.getCircleByElderId(creator.id);
+    const circle = existing ?? services.circles.createCircle(creator.id, creator.id, payload.name);
     res.status(existing ? 200 : 201).json({ circle });
   });
 
@@ -410,18 +545,40 @@ export function createApp(store: SystemStore, services: Services, options: AppOp
       return;
     }
 
-    const payload = inviteSchema.parse(req.body);
-    const circle = services.circles.getCircle(req.params.id);
-    if (!services.circles.userHasAccessToElder(req.auth!.userId, circle.elderId) && req.auth!.role !== "admin") {
-      res.status(403).json({ message: "You cannot manage this CareCircle." });
+    try {
+      const payload = inviteSchema.parse(req.body);
+      const circle = services.circles.getCircle(req.params.id);
+      if (!services.circles.isCircleManager(circle.id, req.auth!.userId)) {
+        res.status(403).json({ message: "Only the elder who owns this CareCircle can invite members." });
+        return;
+      }
+
+      const result = services.circles.inviteMember(circle.id, payload.email, payload.relation, req.auth!.userId);
+      res.status(result.created ? 201 : 200).json({
+        circle: result.circle,
+        invitation: result.invitation
+      });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Invite failed." });
+    }
+  });
+
+  app.post("/care-circles/accept", (req, res) => {
+    if (!requireAuth(req, res)) {
       return;
     }
 
     try {
-      const updated = services.circles.inviteMember(circle.id, payload.email, payload.relation);
-      res.json({ circle: updated });
+      const payload = acceptSchema.parse(req.body);
+      const result = services.circles.acceptInvitation(
+        payload.inviteCode,
+        req.auth!.userId,
+        req.auth!.email,
+        payload.relation
+      );
+      res.json({ circle: services.circles.getCircle(result.circle.id), alreadyLinked: result.alreadyLinked });
     } catch (error) {
-      res.status(400).json({ message: error instanceof Error ? error.message : "Invite failed." });
+      res.status(400).json({ message: error instanceof Error ? error.message : "Unable to accept invitation." });
     }
   });
 
@@ -432,28 +589,22 @@ export function createApp(store: SystemStore, services: Services, options: AppOp
 
     const payload = acceptSchema.parse(req.body);
     try {
-      const target = store.careCircles.find((circle) => circle.id === req.params.id || circle.inviteCode === req.params.id || circle.inviteCode === payload.inviteCode);
+      const target = store.careCircles.find(
+        (circle) => circle.inviteCode === req.params.id || circle.inviteCode === payload.inviteCode
+      );
       if (!target) {
         res.status(404).json({ message: "CareCircle not found." });
         return;
       }
 
-      if (req.auth!.role !== "admin" && req.auth!.userId !== target.elderId && !services.circles.userHasAccessToElder(req.auth!.userId, target.elderId)) {
-        services.circles.acceptInvitation(
-  payload.inviteCode,
-  req.auth!.userId,
-  req.auth!.email,
-  payload.relation
-);
-      } else {
-services.circles.acceptInvitation(
-  payload.inviteCode,
-  req.auth!.userId,
-  req.auth!.email,
-  payload.relation
-);      }
+      const result = services.circles.acceptInvitation(
+        target.inviteCode,
+        req.auth!.userId,
+        req.auth!.email,
+        payload.relation
+      );
 
-      res.json({ circle: services.circles.getCircle(target.id) });
+      res.json({ circle: services.circles.getCircle(result.circle.id), alreadyLinked: result.alreadyLinked });
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Unable to accept invitation." });
     }
@@ -465,10 +616,60 @@ services.circles.acceptInvitation(
     }
 
     res.json({
-      circles: store.careCircles
-        .filter((circle) => circle.members.some((member) => member.userId === req.auth!.userId))
-        .map((circle) => ({ ...circle, members: services.circles.getMemberDetails(circle.id) }))
+      circles: services.circles.getCirclesForUser(req.auth!.userId).map((circle) => ({
+        ...circle,
+        members: services.circles.getMemberDetails(circle.id),
+        pendingInvitations: services.circles.getPendingForCircle(circle.id)
+      }))
     });
+  });
+
+  app.get("/care-circles/invitations/me", (req, res) => {
+    if (!requireAuth(req, res)) {
+      return;
+    }
+
+    try {
+      const user = services.auth.getUserById(req.auth!.userId);
+      if (!user) {
+        res.status(404).json({ message: "User not found." });
+        return;
+      }
+
+      const invitations = services.circles.getPendingForEmail(user.email).map((invitation) => {
+        const circle = services.circles.getCircle(invitation.circleId);
+        return {
+          circleId: circle.id,
+          circleName: circle.name,
+          elderId: circle.elderId,
+          relation: invitation.relation,
+          inviteCode: circle.inviteCode,
+          createdAt: invitation.createdAt,
+          expiresAt: invitation.expiresAt
+        };
+      });
+      res.json({ invitations });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Unable to load invitations." });
+    }
+  });
+
+  app.delete("/care-circles/:id/members/:userId", (req, res) => {
+    if (!requireAuth(req, res)) {
+      return;
+    }
+
+    try {
+      const circle = services.circles.getCircle(req.params.id);
+      if (!services.circles.isCircleManager(circle.id, req.auth!.userId)) {
+        res.status(403).json({ message: "Only the elder who owns this CareCircle can remove members." });
+        return;
+      }
+      const updated = services.circles.removeMember(circle.id, req.params.userId);
+      res.json({ circle: updated });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Unable to remove member." });
+    }
   });
 
   app.post("/health/vitals", (req, res) => {
@@ -610,6 +811,173 @@ services.circles.acceptInvitation(
     res.json({ appointments: services.lifestyle.getAppointmentsForElder(req.params.elderId) });
   });
 
+  app.patch("/appointments/:id", (req, res) => {
+    if (!requireAuth(req, res)) {
+      return;
+    }
+
+    try {
+      const payload = appointmentUpdateSchema.parse(req.body);
+      if (!ensureElderAccess(req, res, payload.elderId)) {
+        return;
+      }
+      const appointment = services.lifestyle.updateAppointment(payload.elderId, req.params.id, payload);
+      res.json({ appointment });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Unable to update appointment." });
+    }
+  });
+
+  app.post("/appointments/:id/cancel", (req, res) => {
+    if (!requireAuth(req, res)) {
+      return;
+    }
+
+    try {
+      const payload = appointmentCancelSchema.parse(req.body);
+      if (!ensureElderAccess(req, res, payload.elderId)) {
+        return;
+      }
+      res.json(services.lifestyle.cancelAppointment(payload.elderId, req.params.id));
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Unable to cancel appointment." });
+    }
+  });
+
+  app.post("/care-instructions", (req, res) => {
+    if (!requireRole(["caregiver"], req, res)) {
+      return;
+    }
+
+    try {
+      const payload = careInstructionSchema.parse(req.body);
+      if (!ensureElderAccess(req, res, payload.elderId)) {
+        return;
+      }
+      const instruction = services.careInstructions.create({
+        ...payload,
+        caregiverId: req.auth!.userId
+      });
+      res.status(201).json({ instruction });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Unable to create care instruction." });
+    }
+  });
+
+  app.get("/care-instructions/elder/:elderId", (req, res) => {
+    if (!ensureElderAccess(req, res, req.params.elderId)) {
+      return;
+    }
+
+    try {
+      res.json(services.careInstructions.getMedicalRecordsForElder(req.params.elderId));
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Unable to load medical records." });
+    }
+  });
+
+  app.get("/care-instructions/:elderId", (req, res) => {
+    if (!ensureElderAccess(req, res, req.params.elderId)) {
+      return;
+    }
+
+    res.json({ instructions: services.careInstructions.getByElderId(req.params.elderId) });
+  });
+
+  app.get("/care-instructions", (req, res) => {
+    if (!requireAuth(req, res)) {
+      return;
+    }
+
+    if (req.auth!.role === "caregiver") {
+      res.json({ instructions: services.careInstructions.getByCaregiverId(req.auth!.userId) });
+      return;
+    }
+
+    const elderIds = services.circles.getLinkedEldersForUser(req.auth!.userId);
+    const instructions = elderIds.flatMap((elderId) => services.careInstructions.getByElderId(elderId));
+    res.json({ instructions });
+  });
+
+  app.post("/care-tasks", (req, res) => {
+    if (!requireRole(["family", "caregiver"], req, res)) {
+      return;
+    }
+
+    try {
+      const payload = careTaskSchema.parse(req.body);
+      if (!ensureElderAccess(req, res, payload.elderId)) {
+        return;
+      }
+      const task = services.carePlan.createTask({ ...payload, createdByUserId: req.auth!.userId });
+      res.status(201).json({ task });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Unable to create care task." });
+    }
+  });
+
+  app.get("/care-tasks/elder/:elderId", (req, res) => {
+    if (!ensureElderAccess(req, res, req.params.elderId)) {
+      return;
+    }
+
+    res.json({
+      tasks: services.carePlan.getTasksForElder(req.params.elderId),
+      pendingCount: services.carePlan.getPendingTaskCount(req.params.elderId)
+    });
+  });
+
+  app.patch("/care-tasks/:id", (req, res) => {
+    if (!requireAuth(req, res)) {
+      return;
+    }
+
+    try {
+      const payload = careTaskUpdateSchema.parse(req.body);
+      if (!ensureElderAccess(req, res, payload.elderId)) {
+        return;
+      }
+      const { elderId: _elderId, ...updates } = payload;
+      const task = services.carePlan.updateTask(req.params.id, req.auth!.userId, updates);
+      res.json({ task });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Unable to update care task." });
+    }
+  });
+
+  app.post("/care-notes", (req, res) => {
+    if (!requireRole(["family", "caregiver"], req, res)) {
+      return;
+    }
+
+    try {
+      const payload = careNoteSchema.parse(req.body);
+      if (!ensureElderAccess(req, res, payload.elderId)) {
+        return;
+      }
+      const note = services.carePlan.createNote({ ...payload, authorId: req.auth!.userId });
+      res.status(201).json({ note });
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Unable to create care note." });
+    }
+  });
+
+  app.get("/care-notes/elder/:elderId", (req, res) => {
+    if (!ensureElderAccess(req, res, req.params.elderId)) {
+      return;
+    }
+
+    res.json({ notes: services.carePlan.getNotesForElder(req.params.elderId) });
+  });
+
+  app.get("/ai/conversations", (req, res) => {
+    if (!requireAuth(req, res)) {
+      return;
+    }
+
+    res.json({ conversations: services.ai.listConversationsForUser(req.auth!.userId) });
+  });
+
   app.post("/ai/chat", async (req, res) => {
     if (!requireAuth(req, res)) {
       return;
@@ -705,17 +1073,33 @@ const saved = await fileStorage.saveFile({
     res.json({ notification });
   });
 
+  app.get("/sos", (req, res) => {
+    if (!requireAuth(req, res)) {
+      return;
+    }
+
+    const linkedElders = services.circles.getLinkedEldersForUser(req.auth!.userId);
+    const events = services.sos
+      .getAllEvents()
+      .filter((event) => linkedElders.includes(event.elderId) || event.triggeredByUserId === req.auth!.userId);
+    res.json({ events });
+  });
+
   app.post("/sos", (req, res) => {
     if (!requireAuth(req, res)) {
       return;
     }
 
-    const payload = sosSchema.parse(req.body);
-    if (!ensureElderAccess(req, res, payload.elderId)) {
-      return;
-    }
+    try {
+      const payload = sosSchema.parse(req.body);
+      if (!ensureElderAccess(req, res, payload.elderId)) {
+        return;
+      }
 
-    res.status(201).json(services.sos.create({ ...payload, triggeredByUserId: req.auth!.userId }));
+      res.status(201).json(services.sos.create({ ...payload, triggeredByUserId: req.auth!.userId }));
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Unable to trigger SOS." });
+    }
   });
 
   app.post("/sos/:id/acknowledge", (req, res) => {
@@ -724,6 +1108,15 @@ const saved = await fileStorage.saveFile({
     }
 
     try {
+      const event = services.sos.getEvent(req.params.id);
+      if (!event) {
+        res.status(404).json({ message: "SOS event not found." });
+        return;
+      }
+      if (!services.circles.userHasAccessToElder(req.auth!.userId, event.elderId)) {
+        res.status(403).json({ message: "You do not have access to this SOS event." });
+        return;
+      }
       res.json({ event: services.sos.acknowledge(req.params.id, req.auth!.userId) });
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Unable to acknowledge SOS." });
@@ -736,6 +1129,15 @@ const saved = await fileStorage.saveFile({
     }
 
     try {
+      const event = services.sos.getEvent(req.params.id);
+      if (!event) {
+        res.status(404).json({ message: "SOS event not found." });
+        return;
+      }
+      if (!services.circles.userHasAccessToElder(req.auth!.userId, event.elderId)) {
+        res.status(403).json({ message: "You do not have access to this SOS event." });
+        return;
+      }
       res.json({ event: services.sos.resolve(req.params.id, req.auth!.userId) });
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Unable to resolve SOS." });
@@ -766,30 +1168,6 @@ const saved = await fileStorage.saveFile({
     } catch (error) {
       res.status(500).json({ message: error instanceof Error ? error.message : "Unable to generate report PDF." });
     }
-  });
-
-  app.get("/admin/analytics", (req, res) => {
-    if (!requireRole(["admin"], req, res)) {
-      return;
-    }
-
-    res.json(services.reports.adminAnalytics());
-  });
-
-  app.get("/admin/users", (req, res) => {
-    if (!requireRole(["admin"], req, res)) {
-      return;
-    }
-
-    res.json({ users: store.users.map((user) => services.auth.publicUser(user)) });
-  });
-
-  app.get("/admin/sos", (req, res) => {
-    if (!requireRole(["admin"], req, res)) {
-      return;
-    }
-
-    res.json({ sosEvents: store.sosEvents });
   });
 
   app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {

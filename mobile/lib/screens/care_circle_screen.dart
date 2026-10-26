@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../api_client.dart';
 import '../theme.dart';
 import '../widgets/cc_components.dart';
+import 'accept_invitation_screen.dart';
 
 class CareCircleScreen extends StatefulWidget {
   const CareCircleScreen({super.key, required this.apiClient});
@@ -19,6 +20,7 @@ class _CareCircleScreenState extends State<CareCircleScreen> {
   bool _isLoading = true;
   String? _error;
   String? _myUserId;
+  String? _myRole;
 
   @override
   void initState() {
@@ -39,6 +41,7 @@ class _CareCircleScreenState extends State<CareCircleScreen> {
       if (!mounted) return;
       _circles = (results[0]['circles'] as List<dynamic>? ?? const []);
       _myUserId = results[1]['user']?['id']?.toString();
+      _myRole = results[1]['user']?['role']?.toString();
     } catch (e) {
       _error = e.toString().replaceFirst('Exception: ', '');
     } finally {
@@ -67,6 +70,7 @@ class _CareCircleScreenState extends State<CareCircleScreen> {
   }
 
   Widget _buildNoCircle() {
+    final isElder = _myRole == 'elder';
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -75,11 +79,11 @@ class _CareCircleScreenState extends State<CareCircleScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(AppTheme.spacingXxl),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppTheme.tealLight,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.group_add, color: AppTheme.teal, size: 64),
+              child: Icon(isElder ? Icons.group_add : Icons.mail_outline, color: AppTheme.teal, size: 64),
             ),
             const SizedBox(height: AppTheme.spacingXxl),
             const Text(
@@ -87,23 +91,37 @@ class _CareCircleScreenState extends State<CareCircleScreen> {
               style: TextStyle(fontSize: AppTheme.fontSizeXxl, fontWeight: FontWeight.w800, color: AppTheme.ink),
             ),
             const SizedBox(height: AppTheme.spacingSm),
-            const Text(
-              'Create your Care Circle to invite family members and caregivers to support your health journey.',
+            Text(
+              isElder
+                  ? 'Create your Care Circle to invite family members and caregivers to support your health journey.'
+                  : 'Ask your elder to share an invite code, or open an invitation below to join their Care Circle.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppTheme.muted, fontSize: AppTheme.fontSizeLg, height: 1.4),
+              style: const TextStyle(color: AppTheme.muted, fontSize: AppTheme.fontSizeLg, height: 1.4),
             ),
             const SizedBox(height: AppTheme.spacingXxl2),
             SizedBox(
               width: double.infinity,
               height: 56,
               child: FilledButton(
-                onPressed: _createCircle,
+                onPressed: isElder
+                    ? _createCircle
+                    : () {
+                        Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => AcceptInvitationScreen(
+                            apiClient: widget.apiClient,
+                            onAccepted: _load,
+                          ),
+                        ));
+                      },
                 style: FilledButton.styleFrom(
                   backgroundColor: AppTheme.teal,
                   foregroundColor: AppTheme.surface,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusLarge)),
                 ),
-                child: const Text('Create Care Circle', style: TextStyle(fontSize: AppTheme.fontSizeXl, fontWeight: FontWeight.w800)),
+                child: Text(
+                  isElder ? 'Create Care Circle' : 'Open Invitation',
+                  style: const TextStyle(fontSize: AppTheme.fontSizeXl, fontWeight: FontWeight.w800),
+                ),
               ),
             ),
           ],
@@ -119,7 +137,7 @@ class _CareCircleScreenState extends State<CareCircleScreen> {
     final circleName = circle['name']?.toString() ?? 'Care Circle';
     // Circle management (invite/remove) is reserved for the owning elder;
     // the backend enforces this independently of the UI.
-    final canManage = _myUserId != null && _myUserId == circle['elderId']?.toString();
+    final canManage = _myRole == 'elder' && _myUserId != null && _myUserId == circle['elderId']?.toString();
     final pending = (circle['pendingInvitations'] as List<dynamic>? ?? const []);
 
     return RefreshIndicator(

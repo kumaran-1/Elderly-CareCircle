@@ -5,6 +5,7 @@ import '../responsive.dart';
 import '../theme.dart';
 import '../widgets/cc_components.dart';
 import 'accept_invitation_screen.dart';
+import 'care_plan_screen.dart';
 
 class FamilyDashboard extends StatefulWidget {
   const FamilyDashboard({super.key, required this.apiClient, required this.onLogout});
@@ -192,7 +193,7 @@ class _FamilyDashboardState extends State<FamilyDashboard> {
 
     if (elderIds.isEmpty) {
       return [
-        CCEmpty(icon: Icons.elderly, message: 'No linked elders found.'),
+        const CCEmpty(icon: Icons.elderly, message: 'No linked elders found.'),
       ];
     }
 
@@ -234,7 +235,7 @@ class _FamilyDashboardState extends State<FamilyDashboard> {
                       children: [
                         Text(elderName, style: const TextStyle(fontSize: AppTheme.fontSizeXl, fontWeight: FontWeight.w800, color: AppTheme.ink)),
                         const SizedBox(height: AppTheme.spacingXs),
-                        Text(
+                        const Text(
                           'Tap to view health summary',
                           style: TextStyle(color: AppTheme.muted, fontSize: AppTheme.fontSizeMd),
                         ),
@@ -377,6 +378,8 @@ class _ElderSummaryScreenState extends State<_ElderSummaryScreen> {
                   child: ListView(
                     padding: const EdgeInsets.all(18),
                     children: [
+                      _buildCarePlanButton(),
+                      const SizedBox(height: AppTheme.spacingLg),
                       _buildVitalsSection(),
                       const SizedBox(height: AppTheme.spacingLg),
                       _buildMedicationSection(),
@@ -387,6 +390,31 @@ class _ElderSummaryScreenState extends State<_ElderSummaryScreen> {
                     ],
                   ),
                 ),
+    );
+  }
+
+  Widget _buildCarePlanButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: FilledButton.icon(
+        onPressed: () {
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => CarePlanScreen(
+              apiClient: widget.apiClient,
+              elderId: widget.elderId,
+              elderName: widget.elderName,
+            ),
+          ));
+        },
+        style: FilledButton.styleFrom(
+          backgroundColor: AppTheme.coral,
+          foregroundColor: AppTheme.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusLarge)),
+        ),
+        icon: const Icon(Icons.assignment_turned_in),
+        label: const Text('Care Plan, Tasks & Handover', style: TextStyle(fontSize: AppTheme.fontSizeLg, fontWeight: FontWeight.w700)),
+      ),
     );
   }
 

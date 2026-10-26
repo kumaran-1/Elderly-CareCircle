@@ -24,6 +24,8 @@ export interface AppointmentInput {
   specialty: string;
   dateTime: string;
   notes?: string;
+  followUpNotes?: string;
+  followUpAt?: string;
 }
 
 export class LifestyleService {
@@ -94,6 +96,13 @@ export class LifestyleService {
       throw new Error("Invalid appointment date.");
     }
 
+    let followUpAt: string | undefined;
+    if (input.followUpAt !== undefined) {
+      const followUp = new Date(input.followUpAt);
+      if (Number.isNaN(followUp.getTime())) throw new Error("Invalid follow-up date.");
+      followUpAt = followUp.toISOString();
+    }
+
     const appointment: Appointment = {
       id: crypto.randomUUID(),
       elderId: input.elderId,
@@ -102,6 +111,9 @@ export class LifestyleService {
       specialty: input.specialty,
       dateTime: date.toISOString(),
       notes: input.notes,
+      followUpNotes: input.followUpNotes,
+      followUpAt,
+      status: "scheduled",
       reminderTimes: [
         new Date(date.getTime() - 24 * 60 * 60 * 1000).toISOString(),
         new Date(date.getTime() - 60 * 60 * 1000).toISOString()
@@ -167,9 +179,12 @@ export class LifestyleService {
   updateAppointment(
     elderId: string,
     id: string,
-    updates: Partial<Pick<Appointment, "doctorName" | "specialty" | "dateTime" | "notes">>
+    updates: Partial<Pick<Appointment, "doctorName" | "specialty" | "dateTime" | "notes" | "followUpNotes" | "followUpAt">>
   ): Appointment {
     const appointment = this.getAppointment(elderId, id);
+    if (appointment.status === "cancelled") {
+      throw new Error("Cancelled appointments cannot be updated.");
+    }
 
     if (updates.dateTime !== undefined) {
       const date = new Date(updates.dateTime);
@@ -184,14 +199,27 @@ export class LifestyleService {
     if (updates.doctorName !== undefined) appointment.doctorName = updates.doctorName;
     if (updates.specialty !== undefined) appointment.specialty = updates.specialty;
     if (updates.notes !== undefined) appointment.notes = updates.notes;
+    if (updates.followUpNotes !== undefined) appointment.followUpNotes = updates.followUpNotes;
+    if (updates.followUpAt !== undefined) {
+      const followUp = new Date(updates.followUpAt);
+      if (Number.isNaN(followUp.getTime())) throw new Error("Invalid follow-up date.");
+      appointment.followUpAt = followUp.toISOString();
+    }
 
+    appointment.updatedAt = new Date().toISOString();
     this.onChange();
     return appointment;
   }
 
   cancelAppointment(elderId: string, id: string): { cancelled: boolean; appointment: Appointment } {
     const appointment = this.getAppointment(elderId, id);
-    this.store.appointments = this.store.appointments.filter((item) => item.id !== id);
+    if (appointment.status === "cancelled") {
+      return { cancelled: false, appointment };
+    }
+
+    appointment.status = "cancelled";
+    appointment.cancelledAt = new Date().toISOString();
+    appointment.updatedAt = appointment.cancelledAt;
     this.onChange();
     return { cancelled: true, appointment };
   }
