@@ -131,6 +131,7 @@ const sosSchema = z.object({
 
 export function createApp(store: SystemStore, services: Services, options: AppOptions = {}) {
   const app = express();
+  app.set("trust proxy", 1);
   app.use(cors());
   app.use(express.json());
   app.use("/auth", rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: "draft-7", legacyHeaders: false }));
